@@ -1,0 +1,14 @@
+Date;Studio;Stanziamenti;Storni;Categoria
+set-24;Apple;4166;;Field
+set-24;Pear;2000;;Field
+ott-24;Apple;1218,93;;Field
+ott-24;Apple;5605;;Incentivi
+ott-24;Pear;1000;;Incentivi
+ott-24;Pear;;1000;Field
+nov-24;Apple;994;;Field
+dic-24;Apple;;5605;Incentivi
+dic-24;Pear;;500;Field
+gen-25;Apple;;2212,93;Field
+feb-25;Apple;;3000;Field
+feb-25;Pear;;500;Field
+feb-25;Pear;;1000;Incentivi
