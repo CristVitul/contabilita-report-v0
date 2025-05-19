@@ -1,0 +1,121 @@
+/* DataUploader.css */
+.uploader-container {
+  width: 100%;
+  background-color: #f9fafb;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.uploader-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.description {
+  text-align: center;
+  color: #4B5563;
+  margin-bottom: 16px;
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.file-button {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: white;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.file-info {
+  font-size: 14px;
+  color: #6B7280;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.primary-button {
+  padding: 8px 16px;
+  background-color: #2563EB;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background-color: #1D4ED8;
+}
+
+.secondary-button {
+  padding: 8px 16px;
+  background-color: #E5E7EB;
+  color: #4B5563;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background-color: #D1D5DB;
+}
+
+.filter-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.filter-label {
+  font-weight: 500;
+  color: #4B5563;
+}
+
+.select-input {
+  background-color: white;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.chart-placeholder {
+  height: 256px;
+  background-color: #F3F4F6;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+}
