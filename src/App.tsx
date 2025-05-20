@@ -42,29 +42,52 @@ export default function ContabilitaReport() {
         skipEmptyLines: true,
         transformHeader: header => header.trim(),
         complete: (result) => {
-          // Pulisci i dati e converti i valori numerici da formato italiano a numerico
-          const cleanedData = result.data.map(row => {
-            // Converte stringhe numeriche con virgola in numeri
-            const cleanRow = {...row};
-            if (typeof cleanRow.Stanziamenti === 'string') {
-              cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
-            } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
-              cleanRow.Stanziamenti = 0;
-            }
+          try {
+            // Determina il formato del file in base alle intestazioni
+            const headers = Object.keys(result.data[0]);
+            const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo');
             
-            if (typeof cleanRow.Storni === 'string') {
-              cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
-            } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
-              cleanRow.Storni = 0;
-            }
+            // Pulisci i dati e converti i valori numerici da formato italiano a numerico
+            const cleanedData = result.data.map(row => {
+              if (isNewFormat) {
+                // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
+                const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+                const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+                
+                return {
+                  Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
+                  Studio: row.studio,
+                  Stanziamenti: stanziamento,
+                  Storni: storno,
+                  Categoria: row.attività
+                };
+              } else {
+                // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
+                const cleanRow = {...row};
+                if (typeof cleanRow.Stanziamenti === 'string') {
+                  cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
+                } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
+                  cleanRow.Stanziamenti = 0;
+                }
+                
+                if (typeof cleanRow.Storni === 'string') {
+                  cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
+                } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
+                  cleanRow.Storni = 0;
+                }
+                
+                return cleanRow;
+              }
+            });
             
-            return cleanRow;
-          });
-          
-          setData(cleanedData);
-          processData(cleanedData);
-          setLoading(false);
-          setFileLoaded(true);
+            setData(cleanedData);
+            processData(cleanedData);
+            setLoading(false);
+            setFileLoaded(true);
+          } catch (err) {
+            setError('Errore durante l\'elaborazione del file: ' + err.message);
+            setLoading(false);
+          }
         },
         error: (error) => {
           setError('Errore durante il parsing del file: ' + error.message);
@@ -84,21 +107,21 @@ export default function ContabilitaReport() {
   const loadDemoData = () => {
     setLoading(true);
     
-    // Dati di esempio integrati
+    // Dati di esempio integrati nel nuovo formato
     const demoData = [
-      { Date: 'set-24', Studio: 'Apple', Stanziamenti: 4166, Storni: null, Categoria: 'Field' },
-      { Date: 'set-24', Studio: 'Pear', Stanziamenti: 2000, Storni: null, Categoria: 'Field' },
-      { Date: 'ott-24', Studio: 'Apple', Stanziamenti: 1218.93, Storni: null, Categoria: 'Field' },
-      { Date: 'ott-24', Studio: 'Apple', Stanziamenti: 5605, Storni: null, Categoria: 'Incentivi' },
-      { Date: 'ott-24', Studio: 'Pear', Stanziamenti: 1000, Storni: null, Categoria: 'Incentivi' },
-      { Date: 'ott-24', Studio: 'Pear', Stanziamenti: null, Storni: 1000, Categoria: 'Field' },
-      { Date: 'nov-24', Studio: 'Apple', Stanziamenti: 994, Storni: null, Categoria: 'Field' },
-      { Date: 'dic-24', Studio: 'Apple', Stanziamenti: null, Storni: 5605, Categoria: 'Incentivi' },
-      { Date: 'dic-24', Studio: 'Pear', Stanziamenti: null, Storni: 500, Categoria: 'Field' },
-      { Date: 'gen-25', Studio: 'Apple', Stanziamenti: null, Storni: 2212.93, Categoria: 'Field' },
-      { Date: 'feb-25', Studio: 'Apple', Stanziamenti: null, Storni: 3000, Categoria: 'Field' },
-      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: null, Storni: 500, Categoria: 'Field' },
-      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: null, Storni: 1000, Categoria: 'Incentivi' }
+      { Date: 'set-24', Studio: 'Apple', Stanziamenti: 4166, Storni: 0, Categoria: 'Field' },
+      { Date: 'set-24', Studio: 'Pear', Stanziamenti: 2000, Storni: 0, Categoria: 'Field' },
+      { Date: 'ott-24', Studio: 'Apple', Stanziamenti: 1218.93, Storni: 0, Categoria: 'Field' },
+      { Date: 'ott-24', Studio: 'Apple', Stanziamenti: 5605, Storni: 0, Categoria: 'Incentivi' },
+      { Date: 'ott-24', Studio: 'Pear', Stanziamenti: 1000, Storni: 0, Categoria: 'Incentivi' },
+      { Date: 'ott-24', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Field' },
+      { Date: 'nov-24', Studio: 'Apple', Stanziamenti: 994, Storni: 0, Categoria: 'Field' },
+      { Date: 'dic-24', Studio: 'Apple', Stanziamenti: 0, Storni: 5605, Categoria: 'Incentivi' },
+      { Date: 'dic-24', Studio: 'Pear', Stanziamenti: 0, Storni: 500, Categoria: 'Field' },
+      { Date: 'gen-25', Studio: 'Apple', Stanziamenti: 0, Storni: 2212.93, Categoria: 'Field' },
+      { Date: 'feb-25', Studio: 'Apple', Stanziamenti: 0, Storni: 3000, Categoria: 'Field' },
+      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 500, Categoria: 'Field' },
+      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Incentivi' }
     ];
     
     setData(demoData);
@@ -193,7 +216,9 @@ export default function ContabilitaReport() {
       {/* File upload section */}
       <div className="mb-8 p-4 border rounded bg-gray-50">
         <h2 className="text-xl font-semibold mb-4">Carica i tuoi dati</h2>
-        <p className="mb-4">Carica un file CSV con formato: Date;Studio;Stanziamenti;Storni;Categoria</p>
+        <p className="mb-4">
+          Carica un file CSV sia nel vecchio formato (Date;Studio;Stanziamenti;Storni;Categoria) o nel nuovo formato (anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note)
+        </p>
         
         <div className="flex flex-wrap gap-4 items-center">
           <div>
