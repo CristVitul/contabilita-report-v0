@@ -1,121 +1,121 @@
-/* DataUploader.css */
+/* DataUploader.css con !important */
 .uploader-container {
-  width: 100%;
-  background-color: #f9fafb;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
+  width: 100% !important;
+  background-color: #f9fafb !important;
+  padding: 24px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  margin-bottom: 24px !important;
 }
 
 .uploader-title {
-  font-size: 24px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 24px;
+  font-size: 24px !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  margin-bottom: 24px !important;
 }
 
 .description {
-  text-align: center;
-  color: #4B5563;
-  margin-bottom: 16px;
+  text-align: center !important;
+  color: #4B5563 !important;
+  margin-bottom: 16px !important;
 }
 
 .upload-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
 }
 
 .file-button {
-  display: inline-block;
-  padding: 8px 16px;
-  background-color: white;
-  border: 1px solid #D1D5DB;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  cursor: pointer;
+  display: inline-block !important;
+  padding: 8px 16px !important;
+  background-color: white !important;
+  border: 1px solid #D1D5DB !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer !important;
 }
 
 .hidden-input {
-  display: none;
+  display: none !important;
 }
 
 .file-info {
-  font-size: 14px;
-  color: #6B7280;
+  font-size: 14px !important;
+  color: #6B7280 !important;
 }
 
 .buttons-container {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin-bottom: 24px !important;
 }
 
 .primary-button {
-  padding: 8px 16px;
-  background-color: #2563EB;
-  color: white;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
+  padding: 8px 16px !important;
+  background-color: #2563EB !important;
+  color: white !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
 }
 
 .primary-button:hover {
-  background-color: #1D4ED8;
+  background-color: #1D4ED8 !important;
 }
 
 .secondary-button {
-  padding: 8px 16px;
-  background-color: #E5E7EB;
-  color: #4B5563;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
+  padding: 8px 16px !important;
+  background-color: #E5E7EB !important;
+  color: #4B5563 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer !important;
 }
 
 .secondary-button:hover {
-  background-color: #D1D5DB;
+  background-color: #D1D5DB !important;
 }
 
 .filter-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
 }
 
 .filter-label {
-  font-weight: 500;
-  color: #4B5563;
+  font-weight: 500 !important;
+  color: #4B5563 !important;
 }
 
 .select-input {
-  background-color: white;
-  border: 1px solid #D1D5DB;
-  border-radius: 6px;
-  padding: 8px 12px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background-color: white !important;
+  border: 1px solid #D1D5DB !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
 .chart-title {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 16px;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  margin-bottom: 16px !important;
 }
 
 .chart-placeholder {
-  height: 256px;
-  background-color: #F3F4F6;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6B7280;
+  height: 256px !important;
+  background-color: #F3F4F6 !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6B7280 !important;
 }
