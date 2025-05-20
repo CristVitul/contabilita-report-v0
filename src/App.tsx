@@ -1,4 +1,5 @@
 import './App.css';
+import './components/DataUploader.css'; // Aggiungi questa riga
 import { useState, useEffect, useRef } from 'react';
 import DataUploader from './components/DataUploader'
 import { 
