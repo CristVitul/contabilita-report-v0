@@ -1,6 +1,6 @@
 import './App.css';
 import { useState, useEffect, useRef } from 'react';
-import DataUploader from './components'
+import DataUploader.tsx from './components'
 import { 
   BarChart,
   Bar,
