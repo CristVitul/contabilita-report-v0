@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import './DataUploader.css';
+import { useState } from 'react';
 
 export default function DataUploader() {
   const [selectedFile, setSelectedFile] = useState(null);
