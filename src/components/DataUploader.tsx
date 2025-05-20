@@ -27,61 +27,55 @@ export default function DataUploader() {
   };
   
   return (
-    <div className="w-full bg-gray-50 p-6 rounded-lg shadow-sm">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Carica i tuoi dati</h1>
+    <div className="uploader-container">
+      <h1 className="uploader-title">Carica i tuoi dati</h1>
+      
+      <p className="description">
+        Carica un file CSV sia nel vecchio formato (Date;Studio;Stanziamenti;Storni;Categoria) o nel nuovo formato
+        (anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note)
+      </p>
+      
+      <div className="upload-section">
+        <label className="file-button">
+          Scegli file
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="hidden-input"
+          />
+        </label>
         
-        <div className="text-center mb-4">
-          <p className="text-gray-700">
-            Carica un file CSV con formato: Date;Studio;Stanziamenti;Storni;Categoria
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-          <label className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 cursor-pointer">
-            <Upload size={16} />
-            <span>Scegli file</span>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </label>
-          
-          <div className="text-sm text-gray-500">
-            {selectedFile ? selectedFile.name : 'Nessun file selezionato'}
-          </div>
-        </div>
-        
-        <div className="flex justify-center gap-3">
-          <button 
-            onClick={handleLoadSampleData}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            <FileText size={16} />
-            Carica dati di esempio
-          </button>
-          
-          <button 
-            onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-          >
-            <RefreshCw size={16} />
-            Reset
-          </button>
+        <div className="file-info">
+          {selectedFile ? selectedFile.name : 'Nessun file selezionato'}
         </div>
       </div>
       
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <label htmlFor="studioFilter" className="font-medium text-gray-700">
+      <div className="buttons-container">
+        <button 
+          onClick={handleLoadSampleData}
+          className="primary-button"
+        >
+          Carica dati di esempio
+        </button>
+        
+        <button 
+          onClick={handleReset}
+          className="secondary-button"
+        >
+          Reset
+        </button>
+      </div>
+      
+      <div className="filter-section">
+        <label htmlFor="studioFilter" className="filter-label">
           Filtra per Studio:
         </label>
         <select
           id="studioFilter"
           value={studioFilter}
           onChange={handleFilterChange}
-          className="bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3"
+          className="select-input"
         >
           <option value="tutti">Tutti</option>
           <option value="apple">Apple</option>
@@ -89,12 +83,9 @@ export default function DataUploader() {
         </select>
       </div>
       
-      <div>
-        <h2 className="text-xl font-bold text-center mb-4">Riepilogo Stanziamenti e Storni</h2>
-        {/* Il grafico verrà inserito qui */}
-        <div className="h-64 bg-gray-100 rounded-md flex items-center justify-center text-gray-500">
-          Area grafico
-        </div>
+      <h2 className="chart-title">Riepilogo Stanziamenti e Storni</h2>
+      <div className="chart-placeholder">
+        Area grafico
       </div>
     </div>
   );
