@@ -1,5 +1,5 @@
-import './DataUploader.css';
 import { useState } from 'react';
+import './DataUploader.css';
 
 export default function DataUploader() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -13,13 +13,11 @@ export default function DataUploader() {
   };
   
   const handleLoadSampleData = () => {
-    // Simulazione del caricamento dati di esempio
     console.log("Caricamento dati di esempio");
   };
   
   const handleReset = () => {
     setSelectedFile(null);
-    // Reset altri stati se necessario
   };
   
   const handleFilterChange = (e) => {
@@ -27,8 +25,12 @@ export default function DataUploader() {
   };
   
   return (
-    <div className="uploader-container">
-      <h1 className="uploader-title">Carica i tuoi dati</h1>
+    <div 
+      className="uploader-container custom-uploader" 
+      data-testid="uploader-container"
+      style={{border: '3px solid green'}} // Stile inline per test
+    >
+      <h1 className="uploader-title" style={{color: 'purple'}}>Carica i tuoi dati</h1>
       
       <p className="description">
         Carica un file CSV sia nel vecchio formato (Date;Studio;Stanziamenti;Storni;Categoria) o nel nuovo formato
@@ -55,6 +57,7 @@ export default function DataUploader() {
         <button 
           onClick={handleLoadSampleData}
           className="primary-button"
+          style={{backgroundColor: 'red'}} // Stile inline per test
         >
           Carica dati di esempio
         </button>
