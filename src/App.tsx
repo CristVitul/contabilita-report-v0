@@ -22,8 +22,22 @@ export default function ContabilitaReport() {
   const [categorieAperte, setCategorieAperte] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [selectedStudio, setSelectedStudio] = useState('Tutti');
+  const [selectedDate, setSelectedDate] = useState('Tutti'); // Nuovo stato per il filtro data
   const [fileLoaded, setFileLoaded] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Funzione per convertire data in formato per ordinamento (YYYY-MM)
+  const getDateSortKey = (dateStr) => {
+    if (!dateStr) return '';
+    const [monthStr, yearStr] = dateStr.split('-');
+    const monthMap = {
+      'gen': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+      'mag': '05', 'giu': '06', 'lug': '07', 'ago': '08',
+      'set': '09', 'ott': '10', 'nov': '11', 'dic': '12'
+    };
+    const fullYear = yearStr.length === 2 ? '20' + yearStr : yearStr;
+    return `${fullYear}-${monthMap[monthStr] || '00'}`;
+  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -108,7 +122,7 @@ export default function ContabilitaReport() {
   const loadDemoData = () => {
     setLoading(true);
     
-    // Dati di esempio integrati nel nuovo formato
+    // Dati di esempio integrati nel nuovo formato con più date
     const demoData = [
       { Date: 'set-24', Studio: 'Apple', Stanziamenti: 4166, Storni: 0, Categoria: 'Field' },
       { Date: 'set-24', Studio: 'Pear', Stanziamenti: 2000, Storni: 0, Categoria: 'Field' },
@@ -122,7 +136,9 @@ export default function ContabilitaReport() {
       { Date: 'gen-25', Studio: 'Apple', Stanziamenti: 0, Storni: 2212.93, Categoria: 'Field' },
       { Date: 'feb-25', Studio: 'Apple', Stanziamenti: 0, Storni: 3000, Categoria: 'Field' },
       { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 500, Categoria: 'Field' },
-      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Incentivi' }
+      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Incentivi' },
+      { Date: 'mar-25', Studio: 'Apple', Stanziamenti: 2000, Storni: 0, Categoria: 'Marketing' },
+      { Date: 'apr-25', Studio: 'Pear', Stanziamenti: 1500, Storni: 0, Categoria: 'Marketing' }
     ];
     
     setData(demoData);
@@ -184,12 +200,69 @@ export default function ContabilitaReport() {
     setChartData(chartDataArray);
   };
 
-  const filterDataByStudio = (studio) => {
-    if (studio === 'Tutti') {
-      return chartData;
-    } else {
-      return chartData.filter(item => item.Studio === studio);
+  // Funzione per filtrare i dati in base ai filtri selezionati
+  const getFilteredData = () => {
+    let filteredData = data;
+    
+    // Filtro per Studio
+    if (selectedStudio !== 'Tutti') {
+      filteredData = filteredData.filter(item => item.Studio === selectedStudio);
     }
+    
+    // Filtro per Data
+    if (selectedDate !== 'Tutti') {
+      filteredData = filteredData.filter(item => item.Date === selectedDate);
+    }
+    
+    return filteredData;
+  };
+
+  // Funzione per processare i dati filtrati
+  const getFilteredSummary = () => {
+    const filteredData = getFilteredData();
+    
+    // Raggruppa i dati filtrati per Studio e Categoria
+    const groupedData = {};
+    
+    filteredData.forEach(row => {
+      const key = `${row.Studio}-${row.Categoria}`;
+      
+      if (!groupedData[key]) {
+        groupedData[key] = {
+          Studio: row.Studio,
+          Categoria: row.Categoria,
+          TotaleStanziamenti: 0,
+          TotaleStorni: 0,
+          Saldo: 0,
+          Movimenti: []
+        };
+      }
+      
+      // Aggiungi il movimento alla lista dei movimenti
+      groupedData[key].Movimenti.push({
+        Data: row.Date,
+        Stanziamenti: row.Stanziamenti || 0,
+        Storni: row.Storni || 0
+      });
+      
+      // Aggiorna i totali
+      groupedData[key].TotaleStanziamenti += row.Stanziamenti || 0;
+      groupedData[key].TotaleStorni += row.Storni || 0;
+      groupedData[key].Saldo = groupedData[key].TotaleStanziamenti - groupedData[key].TotaleStorni;
+    });
+    
+    return Object.values(groupedData);
+  };
+
+  const getFilteredChartData = () => {
+    const filteredSummary = getFilteredSummary();
+    return filteredSummary.map(item => ({
+      name: `${item.Studio} - ${item.Categoria}`,
+      Stanziamenti: item.TotaleStanziamenti,
+      Storni: item.TotaleStorni,
+      Saldo: item.Saldo,
+      Studio: item.Studio
+    }));
   };
 
   const resetData = () => {
@@ -199,6 +272,7 @@ export default function ContabilitaReport() {
     setChartData([]);
     setFileLoaded(false);
     setSelectedStudio('Tutti');
+    setSelectedDate('Tutti');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -208,7 +282,19 @@ export default function ContabilitaReport() {
     return <div className="p-4 bg-gray-100 rounded">Caricamento dei dati in corso...</div>;
   }
 
-  const studi = fileLoaded ? ['Tutti', ...new Set(summary.map(item => item.Studio))] : ['Tutti'];
+  // Calcola le opzioni disponibili per i filtri
+  const studi = fileLoaded ? ['Tutti', ...new Set(data.map(item => item.Studio))] : ['Tutti'];
+  const dateOptions = fileLoaded ? 
+    ['Tutti', ...new Set(data.map(item => item.Date)).sort((a, b) => {
+      if (a === 'Tutti') return -1;
+      if (b === 'Tutti') return 1;
+      return getDateSortKey(a).localeCompare(getDateSortKey(b));
+    })] : ['Tutti'];
+
+  // Dati filtrati per la visualizzazione
+  const currentSummary = fileLoaded ? getFilteredSummary() : [];
+  const currentChartData = fileLoaded ? getFilteredChartData() : [];
+  const currentCategorieAperte = currentSummary.filter(item => item.Saldo > 0);
 
   return (
     <div className="p-4 bg-white rounded shadow max-w-6xl mx-auto">
@@ -264,18 +350,47 @@ export default function ContabilitaReport() {
         </div>
       ) : (
         <>
-          {/* Filtro per Studio */}
-          <div className="mb-6">
-            <label className="mr-2 font-medium">Filtra per Studio:</label>
-            <select 
-              value={selectedStudio} 
-              onChange={(e) => setSelectedStudio(e.target.value)}
-              className="p-2 border rounded bg-white"
-            >
-              {studi.map(studio => (
-                <option key={studio} value={studio}>{studio}</option>
-              ))}
-            </select>
+          {/* Sezione Filtri */}
+          <div className="mb-6 p-4 border rounded bg-gray-50">
+            <h3 className="text-lg font-medium mb-3">Filtri</h3>
+            <div className="flex flex-wrap gap-4">
+              {/* Filtro per Studio */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Studio:</label>
+                <select 
+                  value={selectedStudio} 
+                  onChange={(e) => setSelectedStudio(e.target.value)}
+                  className="p-2 border rounded bg-white min-w-[120px]"
+                >
+                  {studi.map(studio => (
+                    <option key={studio} value={studio}>{studio}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Filtro per Data */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Anno-Mese:</label>
+                <select 
+                  value={selectedDate} 
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="p-2 border rounded bg-white min-w-[120px]"
+                >
+                  {dateOptions.map(date => (
+                    <option key={date} value={date}>{date}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            {/* Indicator dei filtri attivi */}
+            {(selectedStudio !== 'Tutti' || selectedDate !== 'Tutti') && (
+              <div className="mt-3 text-sm text-blue-600">
+                <span className="font-medium">Filtri attivi: </span>
+                {selectedStudio !== 'Tutti' && <span className="bg-blue-100 px-2 py-1 rounded mr-2">Studio: {selectedStudio}</span>}
+                {selectedDate !== 'Tutti' && <span className="bg-blue-100 px-2 py-1 rounded mr-2">Data: {selectedDate}</span>}
+              </div>
+            )}
           </div>
           
           {/* Grafici */}
@@ -284,7 +399,7 @@ export default function ContabilitaReport() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={filterDataByStudio(selectedStudio)}
+                  data={currentChartData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -303,7 +418,7 @@ export default function ContabilitaReport() {
           {/* Tabella Categorie Aperte */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Categorie Aperte (con stanziamenti da stornare)</h2>
-            {categorieAperte.length === 0 ? (
+            {currentCategorieAperte.length === 0 ? (
               <p className="text-green-600 font-medium">Non ci sono categorie aperte. Tutti gli stanziamenti sono stati stornati correttamente.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -318,17 +433,15 @@ export default function ContabilitaReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {categorieAperte
-                      .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
-                      .map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="p-2 border">{item.Studio}</td>
-                          <td className="p-2 border">{item.Categoria}</td>
-                          <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                          <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                          <td className="p-2 border text-right font-medium text-red-600">{item.Saldo.toFixed(2).replace('.', ',')}</td>
-                        </tr>
-                      ))}
+                    {currentCategorieAperte.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="p-2 border">{item.Studio}</td>
+                        <td className="p-2 border">{item.Categoria}</td>
+                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border text-right font-medium text-red-600">{item.Saldo.toFixed(2).replace('.', ',')}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -351,26 +464,24 @@ export default function ContabilitaReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {summary
-                    .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
-                    .map((item, index) => (
-                      <tr key={index} className={item.Saldo === 0 ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50"}>
-                        <td className="p-2 border">{item.Studio}</td>
-                        <td className="p-2 border">{item.Categoria}</td>
-                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border text-right">{item.Saldo.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border">
-                          {item.Saldo === 0 ? (
-                            <span className="text-green-600 font-medium">Bilanciato</span>
-                          ) : item.Saldo > 0 ? (
-                            <span className="text-red-600 font-medium">Da stornare: {item.Saldo.toFixed(2).replace('.', ',')}</span>
-                          ) : (
-                            <span className="text-red-600 font-medium">Errore: Stornato in eccesso {Math.abs(item.Saldo).toFixed(2).replace('.', ',')}</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                  {currentSummary.map((item, index) => (
+                    <tr key={index} className={item.Saldo === 0 ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50"}>
+                      <td className="p-2 border">{item.Studio}</td>
+                      <td className="p-2 border">{item.Categoria}</td>
+                      <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                      <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                      <td className="p-2 border text-right">{item.Saldo.toFixed(2).replace('.', ',')}</td>
+                      <td className="p-2 border">
+                        {item.Saldo === 0 ? (
+                          <span className="text-green-600 font-medium">Bilanciato</span>
+                        ) : item.Saldo > 0 ? (
+                          <span className="text-red-600 font-medium">Da stornare: {item.Saldo.toFixed(2).replace('.', ',')}</span>
+                        ) : (
+                          <span className="text-red-600 font-medium">Errore: Stornato in eccesso {Math.abs(item.Saldo).toFixed(2).replace('.', ',')}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -379,38 +490,36 @@ export default function ContabilitaReport() {
           {/* Dettaglio Movimenti */}
           <div>
             <h2 className="text-xl font-semibold mb-4">Dettaglio Movimenti</h2>
-            {summary
-              .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
-              .map((item, index) => (
-                <div key={index} className="mb-6 p-4 border rounded">
-                  <h3 className="text-lg font-medium mb-2">{item.Studio} - {item.Categoria}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border">
-                      <thead className="bg-gray-100">
-                        <tr>
-                          <th className="p-2 border">Data</th>
-                          <th className="p-2 border">Stanziamenti</th>
-                          <th className="p-2 border">Storni</th>
+            {currentSummary.map((item, index) => (
+              <div key={index} className="mb-6 p-4 border rounded">
+                <h3 className="text-lg font-medium mb-2">{item.Studio} - {item.Categoria}</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-white border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-2 border">Data</th>
+                        <th className="p-2 border">Stanziamenti</th>
+                        <th className="p-2 border">Storni</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.Movimenti.map((mov, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="p-2 border">{mov.Data}</td>
+                          <td className="p-2 border text-right">{mov.Stanziamenti ? mov.Stanziamenti.toFixed(2).replace('.', ',') : ''}</td>
+                          <td className="p-2 border text-right">{mov.Storni ? mov.Storni.toFixed(2).replace('.', ',') : ''}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {item.Movimenti.map((mov, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="p-2 border">{mov.Data}</td>
-                            <td className="p-2 border text-right">{mov.Stanziamenti ? mov.Stanziamenti.toFixed(2).replace('.', ',') : ''}</td>
-                            <td className="p-2 border text-right">{mov.Storni ? mov.Storni.toFixed(2).replace('.', ',') : ''}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-100 font-medium">
-                          <td className="p-2 border">Totale</td>
-                          <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                          <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                      <tr className="bg-gray-100 font-medium">
+                        <td className="p-2 border">Totale</td>
+                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -421,6 +530,7 @@ export default function ContabilitaReport() {
     </div>
   );
 }
+
 function App() {
   return (
     <div className="App">
