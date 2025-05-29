@@ -86,19 +86,34 @@ export default function ContabilitaReport() {
             const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo');
             
             // Pulisci i dati e converti i valori numerici da formato italiano a numerico
-            const cleanedData = result.data.map(row => {
-              if (isNewFormat) {
-                // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
-                const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                
-                return {
-                  Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
-                  Studio: row.studio,
-                  Stanziamenti: stanziamento,
-                  Storni: storno,
-                  Categoria: row.attivita
-                };
+           // Funzione per normalizzare le chiavi di ciascun oggetto riga
+const normalizeRowKeys = (row) => {
+  const normalizedRow = {};
+  Object.entries(row).forEach(([key, value]) => {
+    const normKey = key.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    normalizedRow[normKey] = value;
+  });
+  return normalizedRow;
+};
+
+const cleanedData = result.data.map(originalRow => {
+  const row = normalizeRowKeys(originalRow); // 👈 normalizza qui
+
+  if (isNewFormat) {
+    const stanziamento = row['stanziamento/storno'] === 'stanziamento'
+      ? parseFloat(String(row.importo).replace(',', '.')) || 0
+      : 0;
+    const storno = row['stanziamento/storno'] === 'storno'
+      ? parseFloat(String(row.importo).replace(',', '.')) || 0
+      : 0;
+
+    return {
+      Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`,
+      Studio: row.studio,
+      Stanziamenti: stanziamento,
+      Storni: storno,
+      Categoria: row.attivita // ora funziona sempre
+    };
               } else {
                 // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
                 const cleanRow = {...row};
