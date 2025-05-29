@@ -83,40 +83,54 @@ export default function ContabilitaReport() {
           try {
             // Determina il formato del file in base alle intestazioni
             const headers = Object.keys(result.data[0]);
-            const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo');
+           const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo') && 
+                   (headers.includes('attività') || headers.includes('categoria'));
             
             // Pulisci i dati e converti i valori numerici da formato italiano a numerico
             const cleanedData = result.data.map(row => {
-              if (isNewFormat) {
-                // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
-                const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                
-                return {
-                  Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
-                  Studio: row.studio,
-                  Stanziamenti: stanziamento,
-                  Storni: storno,
-                  Categoria: row.attività
-                };
-              } else {
-                // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
-                const cleanRow = {...row};
-                if (typeof cleanRow.Stanziamenti === 'string') {
-                  cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
-                } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
-                  cleanRow.Stanziamenti = 0;
-                }
-                
-                if (typeof cleanRow.Storni === 'string') {
-                  cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
-                } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
-                  cleanRow.Storni = 0;
-                }
-                
-                return cleanRow;
-              }
-            });
+            if (isNewFormat) {
+              // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
+    
+              // Gestione robusta per trovare la colonna attività/categoria
+              const attivita = row.attività || row['attività'] || row.categoria || row.Categoria || 'undefined';
+    
+              const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+              const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+    
+              // Conversione mese da nome completo a abbreviazione
+            const mesiMap = {
+            'gennaio': 'gen', 'febbraio': 'feb', 'marzo': 'mar', 'aprile': 'apr',
+          'maggio': 'mag', 'giugno': 'giu', 'luglio': 'lug', 'agosto': 'ago',
+          'settembre': 'set', 'ottobre': 'ott', 'novembre': 'nov', 'dicembre': 'dic'
+          };
+    
+    const meseAbbr = mesiMap[row.mese.toLowerCase()] || row.mese.substring(0, 3);
+    
+    return {
+      Date: `${meseAbbr}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
+      Studio: row.studio,
+      Stanziamenti: stanziamento,
+      Storni: storno,
+      Categoria: attivita
+    };
+  } else {
+    // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
+    const cleanRow = {...row};
+    if (typeof cleanRow.Stanziamenti === 'string') {
+      cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
+    } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
+      cleanRow.Stanziamenti = 0;
+    }
+    
+    if (typeof cleanRow.Storni === 'string') {
+      cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
+    } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
+      cleanRow.Storni = 0;
+    }
+    
+    return cleanRow;
+  }
+});
             
             setData(cleanedData);
             processData(cleanedData);
