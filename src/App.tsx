@@ -60,7 +60,7 @@ export default function ContabilitaReport() {
                   Studio: row.studio,
                   Stanziamenti: stanziamento,
                   Storni: storno,
-                  Categoria: row.attività
+                  Categoria: row.attivita
                 };
               } else {
                 // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
