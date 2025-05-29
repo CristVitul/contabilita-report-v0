@@ -78,7 +78,7 @@ export default function ContabilitaReport() {
         delimiter: ';',
         dynamicTyping: true,
         skipEmptyLines: true,
-        transformHeader: header => header.trim(),
+        transformHeader: header => header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
         complete: (result) => {
           try {
             // Determina il formato del file in base alle intestazioni
@@ -97,7 +97,7 @@ export default function ContabilitaReport() {
                   Studio: row.studio,
                   Stanziamenti: stanziamento,
                   Storni: storno,
-                  Categoria: row.attività
+                  Categoria: row.attivita
                 };
               } else {
                 // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
