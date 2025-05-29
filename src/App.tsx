@@ -36,65 +36,77 @@ export default function ContabilitaReport() {
     reader.onload = (e) => {
       const contents = e.target.result;
       
-      Papa.parse(contents, {
-        header: true,
-        delimiter: ';',
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        transformHeader: header => header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
-        complete: (result) => {
-          try {
-            // Determina il formato del file in base alle intestazioni
-            const headers = Object.keys(result.data[0]);
-            const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo');
-            
-            // Pulisci i dati e converti i valori numerici da formato italiano a numerico
-            const cleanedData = result.data.map(row => {
-              if (isNewFormat) {
-                // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
-                const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
-                
-                return {
-                  Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
-                  Studio: row.studio,
-                  Stanziamenti: stanziamento,
-                  Storni: storno,
-                  Categoria: row.attivita
-                };
-              } else {
-                // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
-                const cleanRow = {...row};
-                if (typeof cleanRow.Stanziamenti === 'string') {
-                  cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
-                } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
-                  cleanRow.Stanziamenti = 0;
-                }
-                
-                if (typeof cleanRow.Storni === 'string') {
-                  cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
-                } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
-                  cleanRow.Storni = 0;
-                }
-                
-                return cleanRow;
-              }
-            });
-            
-            setData(cleanedData);
-            processData(cleanedData);
-            setLoading(false);
-            setFileLoaded(true);
-          } catch (err) {
-            setError('Errore durante l\'elaborazione del file: ' + err.message);
-            setLoading(false);
+     Papa.parse(contents, {
+  header: true,
+  delimiter: ';',
+  dynamicTyping: true,
+  skipEmptyLines: true,
+  transformHeader: header =>
+    header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), // normalizza
+
+  complete: (result) => {
+    try {
+      const headers = Object.keys(result.data[0]);
+      const normalizedHeaders = headers.map(h =>
+        h.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      );
+
+      const isNewFormat =
+        normalizedHeaders.includes('anno') &&
+        normalizedHeaders.includes('mese') &&
+        normalizedHeaders.includes('importo');
+
+      const cleanedData = result.data.map(row => {
+        if (isNewFormat) {
+          const stanziamento =
+            row['stanziamento/storno'] === 'stanziamento'
+              ? parseFloat(String(row.importo).replace(',', '.')) || 0
+              : 0;
+          const storno =
+            row['stanziamento/storno'] === 'storno'
+              ? parseFloat(String(row.importo).replace(',', '.')) || 0
+              : 0;
+
+          return {
+            Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`,
+            Studio: row.studio,
+            Stanziamenti: stanziamento,
+            Storni: storno,
+            Categoria: row.attivita // usa la versione normalizzata
+          };
+        } else {
+          const cleanRow = { ...row };
+
+          if (typeof cleanRow.Stanziamenti === 'string') {
+            cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
+          } else if (cleanRow.Stanziamenti == null) {
+            cleanRow.Stanziamenti = 0;
           }
-        },
-        error: (error) => {
-          setError('Errore durante il parsing del file: ' + error.message);
-          setLoading(false);
+
+          if (typeof cleanRow.Storni === 'string') {
+            cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
+          } else if (cleanRow.Storni == null) {
+            cleanRow.Storni = 0;
+          }
+
+          return cleanRow;
         }
       });
+
+      setData(cleanedData);
+      processData(cleanedData);
+      setLoading(false);
+      setFileLoaded(true);
+    } catch (err) {
+      setError('Errore durante l\'elaborazione del file: ' + err.message);
+      setLoading(false);
+    }
+  },
+  error: (error) => {
+    setError('Errore durante il parsing del file: ' + error.message);
+    setLoading(false);
+  }
+});
     };
     
     reader.onerror = () => {
