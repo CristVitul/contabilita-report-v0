@@ -1,5 +1,7 @@
+import './components/DataUploader.css'; // Aggiungi questa riga
 import './App.css';
 import { useState, useEffect, useRef } from 'react';
+import DataUploader from './components/DataUploader'
 import { 
   BarChart,
   Bar,
@@ -20,33 +22,8 @@ export default function ContabilitaReport() {
   const [categorieAperte, setCategorieAperte] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [selectedStudio, setSelectedStudio] = useState('Tutti');
-  const [selectedDate, setSelectedDate] = useState('Tutti'); // Nuovo stato per il filtro data
   const [fileLoaded, setFileLoaded] = useState(false);
   const fileInputRef = useRef(null);
-
-  // Gestione errori globale
-  useEffect(() => {
-    const handleError = (event) => {
-      console.error('Global error:', event.error);
-      setError('Errore dell\'applicazione: ' + event.error?.message);
-    };
-
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-
-  // Funzione per convertire data in formato per ordinamento (YYYY-MM)
-  const getDateSortKey = (dateStr) => {
-    if (!dateStr) return '';
-    const [monthStr, yearStr] = dateStr.split('-');
-    const monthMap = {
-      'gen': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-      'mag': '05', 'giu': '06', 'lug': '07', 'ago': '08',
-      'set': '09', 'ott': '10', 'nov': '11', 'dic': '12'
-    };
-    const fullYear = yearStr.length === 2 ? '20' + yearStr : yearStr;
-    return `${fullYear}-${monthMap[monthStr] || '00'}`;
-  };
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -62,107 +39,58 @@ export default function ContabilitaReport() {
       Papa.parse(contents, {
         header: true,
         delimiter: ';',
-        dynamicTyping: false, // Cambiato a false per gestire meglio i decimali
+        dynamicTyping: true,
         skipEmptyLines: true,
         transformHeader: header => header.trim(),
         complete: (result) => {
           try {
-            if (!result.data || result.data.length === 0) {
-              setError('Il file CSV è vuoto o non valido');
-              setLoading(false);
-              return;
-            }
-
             // Determina il formato del file in base alle intestazioni
-            const headers = Object.keys(result.data[0] || {});
+            const headers = Object.keys(result.data[0]);
             const isNewFormat = headers.includes('anno') && headers.includes('mese') && headers.includes('importo');
             
-            console.log('Headers found:', headers);
-            console.log('Is new format:', isNewFormat);
-            
             // Pulisci i dati e converti i valori numerici da formato italiano a numerico
-            const cleanedData = result.data
-              .filter(row => row && Object.keys(row).length > 0) // Filtra righe vuote
-              .map(row => {
-                try {
-                  if (isNewFormat) {
-                    // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
-                    const importoStr = String(row.importo || '0').trim().replace(',', '.');
-                    const importo = parseFloat(importoStr) || 0;
-                    
-                    const stanziamento = (row['stanziamento/storno'] || '').toLowerCase().trim() === 'stanziamento' ? importo : 0;
-                    const storno = (row['stanziamento/storno'] || '').toLowerCase().trim() === 'storno' ? importo : 0;
-                    
-                    // Mappa i nomi dei mesi italiani
-                    const mesiMap = {
-                      'gennaio': 'gen', 'febbraio': 'feb', 'marzo': 'mar', 'aprile': 'apr',
-                      'maggio': 'mag', 'giugno': 'giu', 'luglio': 'lug', 'agosto': 'ago',
-                      'settembre': 'set', 'ottobre': 'ott', 'novembre': 'nov', 'dicembre': 'dic'
-                    };
-                    
-                    const meseCompleto = (row.mese || '').toLowerCase().trim();
-                    const meseAbbr = mesiMap[meseCompleto] || meseCompleto.substring(0, 3);
-                    const annoStr = String(row.anno || '').substring(2); // Prendi ultime 2 cifre
-                    
-                    return {
-                      Date: `${meseAbbr}-${annoStr}`,
-                      Studio: (row.studio || '').trim(),
-                      Stanziamenti: stanziamento,
-                      Storni: storno,
-                      Categoria: (row.attività || '').trim()
-                    };
-                  } else {
-                    // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
-                    const cleanRow = {...row};
-                    
-                    // Gestisci stanziamenti
-                    if (cleanRow.Stanziamenti && typeof cleanRow.Stanziamenti === 'string') {
-                      cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
-                    } else {
-                      cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti) || 0;
-                    }
-                    
-                    // Gestisci storni
-                    if (cleanRow.Storni && typeof cleanRow.Storni === 'string') {
-                      cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
-                    } else {
-                      cleanRow.Storni = parseFloat(cleanRow.Storni) || 0;
-                    }
-                    
-                    // Pulisci i campi stringa
-                    cleanRow.Studio = (cleanRow.Studio || '').trim();
-                    cleanRow.Categoria = (cleanRow.Categoria || '').trim();
-                    cleanRow.Date = (cleanRow.Date || '').trim();
-                    
-                    return cleanRow;
-                  }
-                } catch (rowError) {
-                  console.error('Errore processing row:', row, rowError);
-                  return null;
+            const cleanedData = result.data.map(row => {
+              if (isNewFormat) {
+                // Nuovo formato: anno;mese;studio;attività;wbs;importo;stanziamento/storno;metodologia;note
+                const stanziamento = row['stanziamento/storno'] === 'stanziamento' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+                const storno = row['stanziamento/storno'] === 'storno' ? parseFloat(String(row.importo).replace(',', '.')) || 0 : 0;
+                
+                return {
+                  Date: `${row.mese.substring(0, 3)}-${String(row.anno).substring(2)}`, // Converti in formato 'mmm-yy'
+                  Studio: row.studio,
+                  Stanziamenti: stanziamento,
+                  Storni: storno,
+                  Categoria: row.attività
+                };
+              } else {
+                // Formato originale: Date;Studio;Stanziamenti;Storni;Categoria
+                const cleanRow = {...row};
+                if (typeof cleanRow.Stanziamenti === 'string') {
+                  cleanRow.Stanziamenti = parseFloat(cleanRow.Stanziamenti.replace(',', '.')) || 0;
+                } else if (cleanRow.Stanziamenti === null || cleanRow.Stanziamenti === undefined) {
+                  cleanRow.Stanziamenti = 0;
                 }
-              })
-              .filter(row => row !== null && row.Studio && row.Categoria); // Filtra righe non valide
-            
-            console.log('Cleaned data:', cleanedData);
-            
-            if (cleanedData.length === 0) {
-              setError('Nessun dato valido trovato nel file CSV');
-              setLoading(false);
-              return;
-            }
+                
+                if (typeof cleanRow.Storni === 'string') {
+                  cleanRow.Storni = parseFloat(cleanRow.Storni.replace(',', '.')) || 0;
+                } else if (cleanRow.Storni === null || cleanRow.Storni === undefined) {
+                  cleanRow.Storni = 0;
+                }
+                
+                return cleanRow;
+              }
+            });
             
             setData(cleanedData);
             processData(cleanedData);
             setLoading(false);
             setFileLoaded(true);
           } catch (err) {
-            console.error('Parse error:', err);
             setError('Errore durante l\'elaborazione del file: ' + err.message);
             setLoading(false);
           }
         },
         error: (error) => {
-          console.error('Papa parse error:', error);
           setError('Errore durante il parsing del file: ' + error.message);
           setLoading(false);
         }
@@ -180,7 +108,7 @@ export default function ContabilitaReport() {
   const loadDemoData = () => {
     setLoading(true);
     
-    // Dati di esempio integrati nel nuovo formato con più date
+    // Dati di esempio integrati nel nuovo formato
     const demoData = [
       { Date: 'set-24', Studio: 'Apple', Stanziamenti: 4166, Storni: 0, Categoria: 'Field' },
       { Date: 'set-24', Studio: 'Pear', Stanziamenti: 2000, Storni: 0, Categoria: 'Field' },
@@ -194,9 +122,7 @@ export default function ContabilitaReport() {
       { Date: 'gen-25', Studio: 'Apple', Stanziamenti: 0, Storni: 2212.93, Categoria: 'Field' },
       { Date: 'feb-25', Studio: 'Apple', Stanziamenti: 0, Storni: 3000, Categoria: 'Field' },
       { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 500, Categoria: 'Field' },
-      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Incentivi' },
-      { Date: 'mar-25', Studio: 'Apple', Stanziamenti: 2000, Storni: 0, Categoria: 'Marketing' },
-      { Date: 'apr-25', Studio: 'Pear', Stanziamenti: 1500, Storni: 0, Categoria: 'Marketing' }
+      { Date: 'feb-25', Studio: 'Pear', Stanziamenti: 0, Storni: 1000, Categoria: 'Incentivi' }
     ];
     
     setData(demoData);
@@ -206,102 +132,13 @@ export default function ContabilitaReport() {
   };
 
   const processData = (data) => {
-    try {
-      console.log('Processing data:', data);
-      
-      // Raggruppa i dati per Studio e Categoria
-      const groupedData = {};
-      const studi = new Set();
-      
-      data.forEach((row, index) => {
-        try {
-          if (!row.Studio || !row.Categoria) {
-            console.warn(`Row ${index} missing Studio or Categoria:`, row);
-            return;
-          }
-          
-          const key = `${row.Studio}-${row.Categoria}`;
-          studi.add(row.Studio);
-          
-          if (!groupedData[key]) {
-            groupedData[key] = {
-              Studio: row.Studio,
-              Categoria: row.Categoria,
-              TotaleStanziamenti: 0,
-              TotaleStorni: 0,
-              Saldo: 0,
-              Movimenti: []
-            };
-          }
-          
-          // Aggiungi il movimento alla lista dei movimenti
-          groupedData[key].Movimenti.push({
-            Data: row.Date,
-            Stanziamenti: row.Stanziamenti || 0,
-            Storni: row.Storni || 0
-          });
-          
-          // Aggiorna i totali
-          groupedData[key].TotaleStanziamenti += row.Stanziamenti || 0;
-          groupedData[key].TotaleStorni += row.Storni || 0;
-          groupedData[key].Saldo = groupedData[key].TotaleStanziamenti - groupedData[key].TotaleStorni;
-        } catch (rowError) {
-          console.error(`Error processing row ${index}:`, row, rowError);
-        }
-      });
-      
-      // Converti l'oggetto in array
-      const summaryArray = Object.values(groupedData);
-      console.log('Summary array:', summaryArray);
-      
-      // Calcola le categorie ancora aperte (saldo > 0)
-      const aperte = summaryArray.filter(item => item.Saldo > 0);
-      
-      // Prepara i dati per il grafico
-      const chartDataArray = summaryArray.map(item => ({
-        name: `${item.Studio} - ${item.Categoria}`,
-        Stanziamenti: item.TotaleStanziamenti,
-        Storni: item.TotaleStorni,
-        Saldo: item.Saldo,
-        Studio: item.Studio
-      }));
-      
-      setSummary(summaryArray);
-      setCategorieAperte(aperte);
-      setChartData(chartDataArray);
-      console.log('Data processed successfully');
-    } catch (error) {
-      console.error('Error in processData:', error);
-      setError('Errore nell\'elaborazione dei dati: ' + error.message);
-    }
-  };
-
-  // Funzione per filtrare i dati in base ai filtri selezionati
-  const getFilteredData = () => {
-    let filteredData = data;
-    
-    // Filtro per Studio
-    if (selectedStudio !== 'Tutti') {
-      filteredData = filteredData.filter(item => item.Studio === selectedStudio);
-    }
-    
-    // Filtro per Data
-    if (selectedDate !== 'Tutti') {
-      filteredData = filteredData.filter(item => item.Date === selectedDate);
-    }
-    
-    return filteredData;
-  };
-
-  // Funzione per processare i dati filtrati
-  const getFilteredSummary = () => {
-    const filteredData = getFilteredData();
-    
-    // Raggruppa i dati filtrati per Studio e Categoria
+    // Raggruppa i dati per Studio e Categoria
     const groupedData = {};
+    const studi = new Set();
     
-    filteredData.forEach(row => {
+    data.forEach(row => {
       const key = `${row.Studio}-${row.Categoria}`;
+      studi.add(row.Studio);
       
       if (!groupedData[key]) {
         groupedData[key] = {
@@ -327,18 +164,32 @@ export default function ContabilitaReport() {
       groupedData[key].Saldo = groupedData[key].TotaleStanziamenti - groupedData[key].TotaleStorni;
     });
     
-    return Object.values(groupedData);
-  };
-
-  const getFilteredChartData = () => {
-    const filteredSummary = getFilteredSummary();
-    return filteredSummary.map(item => ({
+    // Converti l'oggetto in array
+    const summaryArray = Object.values(groupedData);
+    
+    // Calcola le categorie ancora aperte (saldo > 0)
+    const aperte = summaryArray.filter(item => item.Saldo > 0);
+    
+    // Prepara i dati per il grafico
+    const chartDataArray = summaryArray.map(item => ({
       name: `${item.Studio} - ${item.Categoria}`,
       Stanziamenti: item.TotaleStanziamenti,
       Storni: item.TotaleStorni,
       Saldo: item.Saldo,
       Studio: item.Studio
     }));
+    
+    setSummary(summaryArray);
+    setCategorieAperte(aperte);
+    setChartData(chartDataArray);
+  };
+
+  const filterDataByStudio = (studio) => {
+    if (studio === 'Tutti') {
+      return chartData;
+    } else {
+      return chartData.filter(item => item.Studio === studio);
+    }
   };
 
   const resetData = () => {
@@ -348,7 +199,6 @@ export default function ContabilitaReport() {
     setChartData([]);
     setFileLoaded(false);
     setSelectedStudio('Tutti');
-    setSelectedDate('Tutti');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -358,19 +208,7 @@ export default function ContabilitaReport() {
     return <div className="p-4 bg-gray-100 rounded">Caricamento dei dati in corso...</div>;
   }
 
-  // Calcola le opzioni disponibili per i filtri
-  const studi = fileLoaded ? ['Tutti', ...new Set(data.map(item => item.Studio))] : ['Tutti'];
-  const dateOptions = fileLoaded ? 
-    ['Tutti', ...new Set(data.map(item => item.Date)).sort((a, b) => {
-      if (a === 'Tutti') return -1;
-      if (b === 'Tutti') return 1;
-      return getDateSortKey(a).localeCompare(getDateSortKey(b));
-    })] : ['Tutti'];
-
-  // Dati filtrati per la visualizzazione
-  const currentSummary = fileLoaded ? getFilteredSummary() : [];
-  const currentChartData = fileLoaded ? getFilteredChartData() : [];
-  const currentCategorieAperte = currentSummary.filter(item => item.Saldo > 0);
+  const studi = fileLoaded ? ['Tutti', ...new Set(summary.map(item => item.Studio))] : ['Tutti'];
 
   return (
     <div className="p-4 bg-white rounded shadow max-w-6xl mx-auto">
@@ -426,47 +264,18 @@ export default function ContabilitaReport() {
         </div>
       ) : (
         <>
-          {/* Sezione Filtri */}
-          <div className="mb-6 p-4 border rounded bg-gray-50">
-            <h3 className="text-lg font-medium mb-3">Filtri</h3>
-            <div className="flex flex-wrap gap-4">
-              {/* Filtro per Studio */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Studio:</label>
-                <select 
-                  value={selectedStudio} 
-                  onChange={(e) => setSelectedStudio(e.target.value)}
-                  className="p-2 border rounded bg-white min-w-[120px]"
-                >
-                  {studi.map(studio => (
-                    <option key={studio} value={studio}>{studio}</option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Filtro per Data */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Anno-Mese:</label>
-                <select 
-                  value={selectedDate} 
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="p-2 border rounded bg-white min-w-[120px]"
-                >
-                  {dateOptions.map(date => (
-                    <option key={date} value={date}>{date}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            {/* Indicator dei filtri attivi */}
-            {(selectedStudio !== 'Tutti' || selectedDate !== 'Tutti') && (
-              <div className="mt-3 text-sm text-blue-600">
-                <span className="font-medium">Filtri attivi: </span>
-                {selectedStudio !== 'Tutti' && <span className="bg-blue-100 px-2 py-1 rounded mr-2">Studio: {selectedStudio}</span>}
-                {selectedDate !== 'Tutti' && <span className="bg-blue-100 px-2 py-1 rounded mr-2">Data: {selectedDate}</span>}
-              </div>
-            )}
+          {/* Filtro per Studio */}
+          <div className="mb-6">
+            <label className="mr-2 font-medium">Filtra per Studio:</label>
+            <select 
+              value={selectedStudio} 
+              onChange={(e) => setSelectedStudio(e.target.value)}
+              className="p-2 border rounded bg-white"
+            >
+              {studi.map(studio => (
+                <option key={studio} value={studio}>{studio}</option>
+              ))}
+            </select>
           </div>
           
           {/* Grafici */}
@@ -475,7 +284,7 @@ export default function ContabilitaReport() {
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={currentChartData}
+                  data={filterDataByStudio(selectedStudio)}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -494,7 +303,7 @@ export default function ContabilitaReport() {
           {/* Tabella Categorie Aperte */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Categorie Aperte (con stanziamenti da stornare)</h2>
-            {currentCategorieAperte.length === 0 ? (
+            {categorieAperte.length === 0 ? (
               <p className="text-green-600 font-medium">Non ci sono categorie aperte. Tutti gli stanziamenti sono stati stornati correttamente.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -509,15 +318,17 @@ export default function ContabilitaReport() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentCategorieAperte.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="p-2 border">{item.Studio}</td>
-                        <td className="p-2 border">{item.Categoria}</td>
-                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border text-right font-medium text-red-600">{item.Saldo.toFixed(2).replace('.', ',')}</td>
-                      </tr>
-                    ))}
+                    {categorieAperte
+                      .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
+                      .map((item, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="p-2 border">{item.Studio}</td>
+                          <td className="p-2 border">{item.Categoria}</td>
+                          <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                          <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                          <td className="p-2 border text-right font-medium text-red-600">{item.Saldo.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -540,24 +351,26 @@ export default function ContabilitaReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentSummary.map((item, index) => (
-                    <tr key={index} className={item.Saldo === 0 ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50"}>
-                      <td className="p-2 border">{item.Studio}</td>
-                      <td className="p-2 border">{item.Categoria}</td>
-                      <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                      <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                      <td className="p-2 border text-right">{item.Saldo.toFixed(2).replace('.', ',')}</td>
-                      <td className="p-2 border">
-                        {item.Saldo === 0 ? (
-                          <span className="text-green-600 font-medium">Bilanciato</span>
-                        ) : item.Saldo > 0 ? (
-                          <span className="text-red-600 font-medium">Da stornare: {item.Saldo.toFixed(2).replace('.', ',')}</span>
-                        ) : (
-                          <span className="text-red-600 font-medium">Errore: Stornato in eccesso {Math.abs(item.Saldo).toFixed(2).replace('.', ',')}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {summary
+                    .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
+                    .map((item, index) => (
+                      <tr key={index} className={item.Saldo === 0 ? "bg-green-50 hover:bg-green-100" : "hover:bg-gray-50"}>
+                        <td className="p-2 border">{item.Studio}</td>
+                        <td className="p-2 border">{item.Categoria}</td>
+                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border text-right">{item.Saldo.toFixed(2).replace('.', ',')}</td>
+                        <td className="p-2 border">
+                          {item.Saldo === 0 ? (
+                            <span className="text-green-600 font-medium">Bilanciato</span>
+                          ) : item.Saldo > 0 ? (
+                            <span className="text-red-600 font-medium">Da stornare: {item.Saldo.toFixed(2).replace('.', ',')}</span>
+                          ) : (
+                            <span className="text-red-600 font-medium">Errore: Stornato in eccesso {Math.abs(item.Saldo).toFixed(2).replace('.', ',')}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -566,36 +379,38 @@ export default function ContabilitaReport() {
           {/* Dettaglio Movimenti */}
           <div>
             <h2 className="text-xl font-semibold mb-4">Dettaglio Movimenti</h2>
-            {currentSummary.map((item, index) => (
-              <div key={index} className="mb-6 p-4 border rounded">
-                <h3 className="text-lg font-medium mb-2">{item.Studio} - {item.Categoria}</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full bg-white border">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="p-2 border">Data</th>
-                        <th className="p-2 border">Stanziamenti</th>
-                        <th className="p-2 border">Storni</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {item.Movimenti.map((mov, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
-                          <td className="p-2 border">{mov.Data}</td>
-                          <td className="p-2 border text-right">{mov.Stanziamenti ? mov.Stanziamenti.toFixed(2).replace('.', ',') : ''}</td>
-                          <td className="p-2 border text-right">{mov.Storni ? mov.Storni.toFixed(2).replace('.', ',') : ''}</td>
+            {summary
+              .filter(item => selectedStudio === 'Tutti' || item.Studio === selectedStudio)
+              .map((item, index) => (
+                <div key={index} className="mb-6 p-4 border rounded">
+                  <h3 className="text-lg font-medium mb-2">{item.Studio} - {item.Categoria}</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white border">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="p-2 border">Data</th>
+                          <th className="p-2 border">Stanziamenti</th>
+                          <th className="p-2 border">Storni</th>
                         </tr>
-                      ))}
-                      <tr className="bg-gray-100 font-medium">
-                        <td className="p-2 border">Totale</td>
-                        <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
-                        <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {item.Movimenti.map((mov, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="p-2 border">{mov.Data}</td>
+                            <td className="p-2 border text-right">{mov.Stanziamenti ? mov.Stanziamenti.toFixed(2).replace('.', ',') : ''}</td>
+                            <td className="p-2 border text-right">{mov.Storni ? mov.Storni.toFixed(2).replace('.', ',') : ''}</td>
+                          </tr>
+                        ))}
+                        <tr className="bg-gray-100 font-medium">
+                          <td className="p-2 border">Totale</td>
+                          <td className="p-2 border text-right">{item.TotaleStanziamenti.toFixed(2).replace('.', ',')}</td>
+                          <td className="p-2 border text-right">{item.TotaleStorni.toFixed(2).replace('.', ',')}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </>
       )}
@@ -606,7 +421,6 @@ export default function ContabilitaReport() {
     </div>
   );
 }
-
 function App() {
   return (
     <div className="App">
