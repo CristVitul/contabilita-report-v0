@@ -41,7 +41,7 @@ export default function ContabilitaReport() {
         delimiter: ';',
         dynamicTyping: true,
         skipEmptyLines: true,
-        transformHeader: header => header.trim(),
+        transformHeader: header => header.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
         complete: (result) => {
           try {
             // Determina il formato del file in base alle intestazioni
